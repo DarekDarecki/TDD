@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pl_PL">
+
+<head>
+	<meta charset="utf-8">
+	<title>ToDo List</title>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/css/materialize.min.css">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<style>
+	.cardContainer {
+		display: flex;
+		align-items: flex-start;
+		justify-content: center;
+	}
+
+	.card {
+		width: 500px;
+		margin: 50px 20px;
+	}
+
+	.collection-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	a.btn {
+		padding: 0 15px;
+		margin: 0 2px;
+	}
+
+	#addToDo {
+		width: 100%;
+	}
+
+	.waves-input-wrapper {
+		float: right;
+	}
+</style>
+
+<body class="cyan lighten-5">
+	<div class="cardContainer">
+		<div class="card blue lighten-1">
+			<div class="card-content">
+				<span class="card-title">To Do</span>
+				<ul class="collection">
+					<div id="todoContainer"></div>
+					<li class="collection-item">
+						<form id="addToDo" class="col s12">
+							<div class="row">
+								<div class="input-field">
+									<input id="todo" type="text" class="validate">
+									<label for="todo">Dodaj do listy zadań:</label>
+								</div>
+								<input class="waves-effect waves-light btn" type="submit" name="name" value="Dodaj">
+							</div>
+						</form>
+					</li>
+				</ul>
+
+			</div>
+		</div>
+		<div class="card teal lighten-2">
+			<div class="card-content">
+				<span class="card-title">Done</span>
+				<ul id="doneContainer" class="collection">
+				</ul>
+			</div>
+		</div>
+	</div>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/js/materialize.min.js"></script>
+	<script>
+		$(function () {
+			var ids = [];
+			var ids2 = [];
+
+			var todoContainer = $('#todoContainer');
+			var doneContainer = $('#doneContainer');
+
+			var loadTodos = function () {
+				$.getJSON("http://localhost:2000/api/todos", function (data) {
+					var done = [];
+					var todos = [];
+					for (var i = 0; i < data.todo.length; i++) {
+						(data.todo[i].completed) ? done.unshift(data.todo[i]): todos.push(data.todo[i]);
+					}
+					$(todos).each(function (index, el) {
+						while (ids.indexOf(el._id) == -1) {
+							ids.push(el._id)
+							todoContainer.append('<li class="collection-item" id="' + el._id + '"><p>' + el.todo +
+								'</p><div><a class="update waves-effect waves-light btn"><i class="material-icons">done</i></a><a class="delete red waves-effect waves-light btn"><i class="material-icons">delete</i></a></div></li>')
+						}
+					});
+					$(done).each(function (index, el) {
+						while (ids2.indexOf(el._id) == -1) {
+							ids2.push(el._id)
+							doneContainer.append('<li class="collection-item" id="' + el._id + '"><p>' + el.todo + '</p></li>');
+
+						}
+					});
+				});
+			}
+			$('#addToDo').submit(function (event) {
+				event.preventDefault();
+				var input = $(this).find('#todo');
+				var name = input.val();
+				$.ajax({
+						url: 'http://localhost:2000/api/todos/',
+						dataType: "json",
+						type: 'POST',
+						contentType: 'application/json',
+						data: '{"todo" : "' + name + '"}',
+						success: function (result) {
+							console.log(result);
+						}
+					})
+					.done(function () {
+						input.val("");
+						loadTodos();
+					})
+			});
+			$('body').on('click', '.delete', function (event) {
+				event.preventDefault();
+				var id = $(this).parents('li').attr('id');
+                todoContainer.find('#' + id + '').remove();
+				$.ajax({
+						url: 'http://localhost:2000/api/todos/' + id,
+						type: 'DELETE',
+						success: function (result) {
+							console.log(result);
+						}
+					})
+					.done(function () {
+						loadTodos();
+					})
+			});
+			$('body').on('click', '.update', function (event) {
+				event.preventDefault();
+				var id = $(this).parents('li').attr('id');
+                todoContainer.find('#' + id + '').remove();
+				$.ajax({
+						url: 'http://localhost:2000/api/todos/' + id,
+						type: 'PUT',
+						dataType: "json",
+						contentType: 'application/json',
+						data: '{"completed" : "true"}',
+						success: function (result) {
+							console.log(result);
+						}
+					})
+					.done(function () {
+						loadTodos();
+					})
+			});
+			loadTodos();
+		});
+	</script>
+</body>
+
+</html>
